@@ -1,7 +1,9 @@
 .PHONY: help
 
 VERSION ?= `cat VERSION`
-IMAGE_NAME ?= lachezar/alpine-erlang
+MAJ_VERSION := $(shell echo $(VERSION) | sed 's/\([0-9][0-9]*\)\.\([0-9][0-9]*\)\(\.[0-9][0-9]*\)*/\1/')
+MIN_VERSION := $(shell echo $(VERSION) | sed 's/\([0-9][0-9]*\)\.\([0-9][0-9]*\)\(\.[0-9][0-9]*\)*/\1.\2/')
+IMAGE_NAME ?= bitwalker/alpine-erlang
 
 help:
 	@echo "$(IMAGE_NAME):$(VERSION)"
@@ -13,8 +15,22 @@ test: ## Test the Docker image
 shell: ## Run an Erlang shell in the image
 	docker run --rm -it $(IMAGE_NAME):$(VERSION) erl
 
-build: ## Rebuild the Docker image
-	docker build --force-rm -t $(IMAGE_NAME):$(VERSION) -t $(IMAGE_NAME):latest .
+sh: ## Boot to a shell prompt
+	docker run --rm -it $(IMAGE_NAME):$(VERSION) /bin/bash
+
+sh-build: ## Boot to a shell prompt in the build image
+	docker run --rm -it $(IMAGE_NAME)-build:$(VERSION) /bin/bash
+
+build: ## Build the Docker image
+	docker build --squash --force-rm -t $(IMAGE_NAME):$(VERSION) -t $(IMAGE_NAME):$(MIN_VERSION) -t $(IMAGE_NAME):$(MAJ_VERSION) -t $(IMAGE_NAME):latest .
+
+stage-build: ## Build the build image and stop there for debugging
+	docker build --target=build -t $(IMAGE_NAME)-build:$(VERSION) .
+
+clean: ## Clean up generated images
+	@docker rmi --force $(IMAGE_NAME):$(VERSION) $(IMAGE_NAME):$(MIN_VERSION) $(IMAGE_NAME):$(MAJ_VERSION) $(IMAGE_NAME):latest
+
+rebuild: clean build ## Rebuild the Docker image
 
 release: build ## Rebuild and release the Docker image to Docker Hub
 	docker push $(IMAGE_NAME):$(VERSION)
