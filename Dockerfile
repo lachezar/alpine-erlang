@@ -1,14 +1,14 @@
-FROM alpine:3.10 AS build
+FROM alpine:3.10.2 AS build
 
 # Important!  Update this no-op ENV variable when this Dockerfile
 # is updated with the current date. It will force refresh of all
 # of the base images and things like `apt-get update` won't be using
 # old cached versions when the Dockerfile is built.
-ENV REFRESHED_AT=2019-07-12 \
+ENV REFRESHED_AT=2019-11-22 \
     LANG=en_US.UTF-8 \
     HOME=/opt/app/ \
     TERM=xterm \
-    ERLANG_VERSION=22.0.7
+    ERLANG_VERSION=22.1.8
 
 # Add tagged repos as well as the edge repo so that we can selectively install edge packages
 RUN \
@@ -49,8 +49,6 @@ COPY patches /tmp/patches
 RUN \
     # Shallow clone Erlang/OTP
     git clone -b OTP-$ERLANG_VERSION --single-branch --depth 1 https://github.com/erlang/otp.git . && \
-    # Apply patches
-    patch -p1 < /tmp/patches/safe-signal-handling.patch && \
     # Erlang/OTP build env
     export ERL_TOP=/tmp/erlang-build && \
     export PATH=$ERL_TOP/bin:$PATH && \
@@ -113,7 +111,7 @@ RUN \
 
 ### Final Image
 
-FROM alpine:3.10
+FROM alpine:3.10.2
 
 MAINTAINER Paul Schoenfelder <paulschoenfelder@gmail.com>
 
